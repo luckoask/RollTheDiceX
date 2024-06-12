@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roll the Dice Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff6f61, #d4fc79);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        input {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #ff6f61;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #d45d53;
+        }
+        #diceGame, #modPanel {
+            display: none;
+        }
+        .dice {
+            font-size: 100px;
+            margin: 20px;
+            animation: rollAnimation 1s ease;
+        }
+        @keyframes rollAnimation {
+            0% { transform: rotate(0); }
+            50% { transform: rotate(360deg); }
+            100% { transform: rotate(0); }
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="usernamePrompt">
+            <h1>Welcome to Roll the Dice!</h1>
+            <label for="username">Enter your username: </label>
+            <input type="text" id="username" name="username">
+            <button onclick="startGame()">Start Game</button>
+            <button onclick="openModPanel()">Moderator Panel</button>
+        </div>
+        <div id="diceGame">
+            <h1>Roll the Dice, <span id="user"></span>!</h1>
+            <div class="dice" id="dice">🎲</div>
+            <button onclick="rollDice()">Roll</button>
+            <p id="rollsLeft"></p>
+        </div>
+        <div id="modPanel">
+            <h1>Moderator Panel</h1>
+            <button onclick="checkIP()">Check IP</button>
+            <div id="ipCheckResult"></div>
+            <h2>Force Roll a Number</h2>
+            <label for="forceRollNumber">Enter a number (1-6): </label>
+            <input type="number" id="forceRollNumber" min="1" max="6">
+            <button onclick="forceRoll()">Force Roll</button>
+            <h2>Add Rolls to User</h2>
+            <label for="addRollsIP">IP Address: </label>
+            <input type="text" id="addRollsIP">
+            <label for="addRollsNumber">Number of rolls to add: </label>
+            <input type="number" id="addRollsNumber" min="1">
+            <button onclick="addRolls()">Add Rolls</button>
+        </div>
+    </div>
+    <script>
+        const webhookUrl = 'https://discord.com/api/webhooks/1248356101355995288/VJG2rLPY0Wc1cdVFz9-iA-5I9BVLdWFE3gsAd2sYuW2ce3PokH3zjco055ppCHXO3YEO';
+        const verificationWebhookUrl = 'https://discord.com/api/webhooks/1248356274366840932/sJHmz-tu23yi6_PkhsOS-fA3FxNwikCiUcZhTQfBAhCi-8Kc_UFNtr_6CBc9BPGC-q9E';
+        const targetIP = '95.105.192.186';
+        const maxRollsPerDay = 3;
+        
+        function getUserRolls(ip) {
+            const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
+            if (!userRolls[ip]) {
+                userRolls[ip] = { rollsLeft: maxRollsPerDay };
+            }
+            return userRolls[ip];
+        }
+
+        function setUserRolls(ip, rollsLeft) {
+            const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
+            userRolls[ip] = { rollsLeft };
+            localStorage.setItem('userRolls', JSON.stringify(userRolls));
+        }
+
+        function startGame() {
+            const username = document.getElementById('username').value;
+            if (username.trim() === "") {
+                alert("Please enter a username");
+                return;
+            }
+            document.getElementById('user').textContent = username;
+            document.getElementById('usernamePrompt').classList.add('hidden');
+            document.getElementById('diceGame').style.display = 'block';
+            fetch('https://api.ipify.org?format=json')
+                .then(response => response.json())
+                .then(data => {
+                    const ip = data.ip;
+                    document.getElementById('user').dataset.ip = ip;
+                    updateRollsLeft();
+                });
+        }
+
+        function rollDice() {
+            const username = document.getElementById('user').textContent;
+            const ip = document.getElementById('user').dataset.ip;
+            const userRoll = getUserRolls(ip);
+            if (userRoll.rollsLeft <= 0) {
+                alert("You have no rolls left for today. Please buy more rolls on our Discord server.");
+                return;
+            }
+
+            const diceFaces = ["&#9856;", "&#9857;", "&#9858;", "&#9859;", "&#9860;", "&#9861;"];
+            const randomIndex = Math.floor(Math.random() * 6);
+            const diceResult = diceFaces[randomIndex];
+            document.getElementById('dice').innerHTML = diceResult;
+            document.getElementById('dice').style.animation = 'none';
+            setTimeout(() => {
+                document.getElementById('dice').style.animation = '';
+            }, 10);
+
+            sendToWebhook(username, diceResult);
+            sendToVerificationWebhook(username);
+
+            userRoll.rollsLeft--;
+            setUserRolls(ip, userRoll.rollsLeft);
+            updateRollsLeft();
+        }
+
+        function sendToWebhook(username, diceResult) {
+            const diceUnicodeMap = {
+                "&#9856;": "1️⃣",
+                "&#9857;": "2️⃣",
+                "&#9858;": "3️⃣",
+                "&#9859;": "4️⃣",
+                "&#9860;": "5️⃣",
+                "&#9861;": "6️⃣"
+            };
+
+            const readableResult = diceUnicodeMap[diceResult];
+            const message = {
+                content: `🎲 **${username}** rolled a dice and got: ${readableResult}`,
+                username: 'Dice Game Bot',
+                avatar_url: 'https://your-avatar-url.com/avatar.png'
+            };
+
+            fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(message)
+            })
+            .then(response => response.json())
+            .then(data => console.log('Success:', data))
+            .catch(error => console.error('Error:', error));
+        }
+
+        function sendToVerificationWebhook(username) {
+            fetch('https://api.ipify.org?format=json')
+                .then(response => response.json())
+                .then(data => {
+                    const ipAddress = data.ip;
+                    const message = {
+                        content: `🛡️ Username: **${username}** | IP Address: **${ipAddress}**`,
+                        username: 'Verification Bot',
+                        avatar_url: 'https://your-avatar-url.com/avatar.png'
+                    };
+
+                    fetch(verificationWebhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(message)
+                    })
+                    .then(response => response.json())
+                    .then(data => console.log('Verification Success:', data))
+                    .catch(error => console.error('Verification Error:', error));
+                });
+        }
+
+        function updateRollsLeft() {
+            const ip = document.getElementById('user').dataset.ip;
+            const userRoll = getUserRolls(ip);
+            const rollsLeftElement = document.getElementById('rollsLeft');
+            rollsLeftElement.textContent = `Rolls left for today: ${userRoll.rollsLeft}`;
+        }
+
+        function openModPanel() {
+            const password = prompt("Enter moderator password:");
+            if (password === "qweqweqwe") {
+                document.getElementById('usernamePrompt').classList.add('hidden');
+                document.getElementById('modPanel').style.display = 'block';
+            } else {
+                alert("Incorrect password");
+            }
+        }
+
+        function checkIP() {
+            fetch('https://api.ipify.org?format=json')
+                .then(response => response.json())
+                .then(data => {
+                    const ipAddress = data.ip;
+                    const resultElement = document.getElementById('ipCheckResult');
+                    if (ipAddress === targetIP) {
+                        resultElement.textContent = 'IP address is verified!';
+                        resultElement.style.color = 'green';
+                    } else {
+                        resultElement.textContent = 'IP address does not match the target IP.';
+                        resultElement.style.color = 'red';
+                    }
+                });
+        }
+
+        function forceRoll() {
+            const forceRollNumber = parseInt(document.getElementById('forceRollNumber').value);
+            if (forceRollNumber >= 1 && forceRollNumber <= 6) {
+                const diceFaces = ["&#9856;", "&#9857;", "&#9858;", "&#9859;", "&#9860;", "&#9861;"];
+                const diceResult = diceFaces[forceRollNumber - 1];
+                document.getElementById('dice').innerHTML = diceResult;
+                document.getElementById('dice').style.animation = 'none';
+                setTimeout(() => {
+                    document.getElementById('dice').style.animation = '';
+                }, 10);
+            } else {
+                alert("Please enter a number between 1 and 6.");
+            }
+        }
+
+        function addRolls() {
+            const ipAddress = document.getElementById('addRollsIP').value;
+            const addRollsNumber = parseInt(document.getElementById('addRollsNumber').value);
+            const userRoll = getUserRolls(ipAddress);
+            userRoll.rollsLeft += addRollsNumber;
+            setUserRolls(ipAddress, userRoll.rollsLeft);
+            alert(`Added ${addRollsNumber} rolls to IP: ${ipAddress}.`);
+        }
+    </script>
+</body>
+</html>
