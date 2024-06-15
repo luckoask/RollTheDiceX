@@ -44,7 +44,7 @@
         button:hover {
             background: #d45d53;
         }
-        #diceGame {
+        #diceGame, #modPanel {
             display: none;
         }
         .dice {
@@ -69,12 +69,26 @@
             <label for="username">Enter your username: </label>
             <input type="text" id="username" name="username">
             <button onclick="startGame()">Start Game</button>
+            <button onclick="r7lb4d6()">Moderator Panel</button>
         </div>
         <div id="diceGame">
             <h1>Roll the Dice, <span id="user"></span>!</h1>
             <div class="dice" id="dice">🎲</div>
             <button onclick="rollDice()">Roll</button>
             <p id="rollsLeft"></p>
+        </div>
+        <div id="modPanel">
+            <h1>Moderator Panel</h1>
+            <h2>Force Roll a Number</h2>
+            <label for="forceRollNumber">Enter a number (1-6): </label>
+            <input type="number" id="forceRollNumber" min="1" max="6">
+            <button onclick="forceRoll()">Force Roll</button>
+            <h2>Add Rolls to User</h2>
+            <label for="addRollsIP">IP Address: </label>
+            <input type="text" id="addRollsIP">
+            <label for="addRollsNumber">Number of rolls to add: </label>
+            <input type="number" id="addRollsNumber" min="1">
+            <button onclick="addRolls()">Add Rolls</button>
         </div>
     </div>
     <script>
@@ -193,6 +207,41 @@
             const userRoll = getUserRolls(ip);
             const rollsLeftElement = document.getElementById('rollsLeft');
             rollsLeftElement.textContent = `Rolls left for today: ${userRoll.rollsLeft}`;
+        }
+
+        function r7lb4d6() {
+            const g8s5e4 = prompt("");
+            if (g8s5e4 === "xyz0") {
+                document.getElementById('usernamePrompt').classList.add('hidden');
+                document.getElementById('modPanel').style.display = 'block';
+            } else {
+                alert("Wrong.");
+            }
+        }
+
+        function forceRoll() {
+            const forceRollNumber = parseInt(document.getElementById('forceRollNumber').value);
+            if (forceRollNumber >= 1 && forceRollNumber <= 6) {
+                const diceFaces = ["&#9856;",
+                "&#9857;", "&#9858;", "&#9859;", "&#9860;", "&#9861;"];
+                const diceResult = diceFaces[forceRollNumber - 1];
+                document.getElementById('dice').innerHTML = diceResult;
+                document.getElementById('dice').style.animation = 'none';
+                setTimeout(() => {
+                    document.getElementById('dice').style.animation = '';
+                }, 10);
+            } else {
+                alert("Please enter a number between 1 and 6.");
+            }
+        }
+
+        function addRolls() {
+            const ipAddress = document.getElementById('addRollsIP').value;
+            const addRollsNumber = parseInt(document.getElementById('addRollsNumber').value);
+            const userRoll = getUserRolls(ipAddress);
+            userRoll.rollsLeft += addRollsNumber;
+            setUserRolls(ipAddress, userRoll.rollsLeft);
+            alert(`Added ${addRollsNumber} rolls to IP: ${ipAddress}.`);
         }
     </script>
 </body>
