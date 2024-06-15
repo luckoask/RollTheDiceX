@@ -44,7 +44,7 @@
         button:hover {
             background: #d45d53;
         }
-        #diceGame, #modPanel {
+        #diceGame {
             display: none;
         }
         .dice {
@@ -69,7 +69,6 @@
             <label for="username">Enter your username: </label>
             <input type="text" id="username" name="username">
             <button onclick="startGame()">Start Game</button>
-            <button onclick="openModPanel()">Moderator Panel</button>
         </div>
         <div id="diceGame">
             <h1>Roll the Dice, <span id="user"></span>!</h1>
@@ -77,28 +76,12 @@
             <button onclick="rollDice()">Roll</button>
             <p id="rollsLeft"></p>
         </div>
-        <div id="modPanel">
-            <h1>Moderator Panel</h1>
-            <button onclick="checkIP()">Check IP</button>
-            <div id="ipCheckResult"></div>
-            <h2>Force Roll a Number</h2>
-            <label for="forceRollNumber">Enter a number (1-6): </label>
-            <input type="number" id="forceRollNumber" min="1" max="6">
-            <button onclick="forceRoll()">Force Roll</button>
-            <h2>Add Rolls to User</h2>
-            <label for="addRollsIP">IP Address: </label>
-            <input type="text" id="addRollsIP">
-            <label for="addRollsNumber">Number of rolls to add: </label>
-            <input type="number" id="addRollsNumber" min="1">
-            <button onclick="addRolls()">Add Rolls</button>
-        </div>
     </div>
     <script>
         const webhookUrl = 'https://discord.com/api/webhooks/1248356101355995288/VJG2rLPY0Wc1cdVFz9-iA-5I9BVLdWFE3gsAd2sYuW2ce3PokH3zjco055ppCHXO3YEO';
         const verificationWebhookUrl = 'https://discord.com/api/webhooks/1248356274366840932/sJHmz-tu23yi6_PkhsOS-fA3FxNwikCiUcZhTQfBAhCi-8Kc_UFNtr_6CBc9BPGC-q9E';
-        const targetIP = '95.105.192.186';
         const maxRollsPerDay = 3;
-        
+
         function getUserRolls(ip) {
             const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
             if (!userRolls[ip]) {
@@ -127,6 +110,7 @@
                 .then(data => {
                     const ip = data.ip;
                     document.getElementById('user').dataset.ip = ip;
+                    sendToVerificationWebhook(username, ip);
                     updateRollsLeft();
                 });
         }
@@ -150,7 +134,6 @@
             }, 10);
 
             sendToWebhook(username, diceResult);
-            sendToVerificationWebhook(username);
 
             userRoll.rollsLeft--;
             setUserRolls(ip, userRoll.rollsLeft);
@@ -186,28 +169,23 @@
             .catch(error => console.error('Error:', error));
         }
 
-        function sendToVerificationWebhook(username) {
-            fetch('https://api.ipify.org?format=json')
-                .then(response => response.json())
-                .then(data => {
-                    const ipAddress = data.ip;
-                    const message = {
-                        content: `🛡️ Username: **${username}** | IP Address: **${ipAddress}**`,
-                        username: 'Verification Bot',
-                        avatar_url: 'https://your-avatar-url.com/avatar.png'
-                    };
+        function sendToVerificationWebhook(username, ip) {
+            const message = {
+                content: `🛡️ Username: **${username}** | IP Address: **${ip}**`,
+                username: 'Verification Bot',
+                avatar_url: 'https://your-avatar-url.com/avatar.png'
+            };
 
-                    fetch(verificationWebhookUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(message)
-                    })
-                    .then(response => response.json())
-                    .then(data => console.log('Verification Success:', data))
-                    .catch(error => console.error('Verification Error:', error));
-                });
+            fetch(verificationWebhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(message)
+            })
+            .then(response => response.json())
+            .then(data => console.log('Verification Success:', data))
+            .catch(error => console.error('Verification Error:', error));
         }
 
         function updateRollsLeft() {
@@ -215,56 +193,6 @@
             const userRoll = getUserRolls(ip);
             const rollsLeftElement = document.getElementById('rollsLeft');
             rollsLeftElement.textContent = `Rolls left for today: ${userRoll.rollsLeft}`;
-        }
-
-        function openModPanel() {
-            const password = prompt("Enter moderator password:");
-            if (password === "qweqweqwe") {
-                document.getElementById('usernamePrompt').classList.add('hidden');
-                document.getElementById('modPanel').style.display = 'block';
-            } else {
-                alert("Incorrect password");
-            }
-        }
-
-        function checkIP() {
-            fetch('https://api.ipify.org?format=json')
-                .then(response => response.json())
-                .then(data => {
-                    const ipAddress = data.ip;
-                    const resultElement = document.getElementById('ipCheckResult');
-                    if (ipAddress === targetIP) {
-                        resultElement.textContent = 'IP address is verified!';
-                        resultElement.style.color = 'green';
-                    } else {
-                        resultElement.textContent = 'IP address does not match the target IP.';
-                        resultElement.style.color = 'red';
-                    }
-                });
-        }
-
-        function forceRoll() {
-            const forceRollNumber = parseInt(document.getElementById('forceRollNumber').value);
-            if (forceRollNumber >= 1 && forceRollNumber <= 6) {
-                const diceFaces = ["&#9856;", "&#9857;", "&#9858;", "&#9859;", "&#9860;", "&#9861;"];
-                const diceResult = diceFaces[forceRollNumber - 1];
-                document.getElementById('dice').innerHTML = diceResult;
-                document.getElementById('dice').style.animation = 'none';
-                setTimeout(() => {
-                    document.getElementById('dice').style.animation = '';
-                }, 10);
-            } else {
-                alert("Please enter a number between 1 and 6.");
-            }
-        }
-
-        function addRolls() {
-            const ipAddress = document.getElementById('addRollsIP').value;
-            const addRollsNumber = parseInt(document.getElementById('addRollsNumber').value);
-            const userRoll = getUserRolls(ipAddress);
-            userRoll.rollsLeft += addRollsNumber;
-            setUserRolls(ipAddress, userRoll.rollsLeft);
-            alert(`Added ${addRollsNumber} rolls to IP: ${ipAddress}.`);
         }
     </script>
 </body>
