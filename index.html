@@ -1,338 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang=en>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roll the Dice Game</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #ff6f61, #d4fc79);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            color: #fff;
-        }
-        .container {
-            text-align: center;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
-        }
-        h1 {
-            margin-bottom: 20px;
-        }
-        input {
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            margin-right: 10px;
-        }
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            background: #ff6f61;
-            color: #fff;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-        button:hover {
-            background: #d45d53;
-        }
-        #diceGame, #modPanel {
-            display: none;
-        }
-        .dice {
-            font-size: 100px;
-            margin: 20px;
-            animation: rollAnimation 1s ease;
-        }
-        @keyframes rollAnimation {
-            0% { transform: rotate(0); }
-            25% { transform: rotate(90deg); }
-            50% { transform: rotate(180deg); }
-            75% { transform: rotate(270deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .hidden {
-            display: none;
-        }
-        .log-list {
-            text-align: left;
-            max-height: 200px;
-            overflow-y: auto;
-            margin: 10px 0;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .log-list div {
-            margin: 5px 0;
-            padding: 5px;
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 3px;
-        }
-    </style>
+<meta charset=UTF-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Roll the Dice Game</title>
+<style>body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#ff6f61,#d4fc79);display:flex;justify-content:center;align-items:center;height:100vh;margin:0;color:#fff}.container{text-align:center;background:rgba(0,0,0,.7);padding:30px;border-radius:10px;box-shadow:0 10px 15px rgba(0,0,0,.2)}h1{margin-bottom:20px}input{padding:10px;border:none;border-radius:5px;margin-right:10px}button{padding:10px 20px;border:none;border-radius:5px;background:#ff6f61;color:#fff;font-size:16px;cursor:pointer;transition:background .3s ease}button:hover{background:#d45d53}#diceGame,#modPanel{display:none}.dice{font-size:100px;margin:20px;animation:rollAnimation 1s ease}@keyframes rollAnimation{0%{transform:rotate(0)}25%{transform:rotate(90deg)}50%{transform:rotate(180deg)}75%{transform:rotate(270deg)}100%{transform:rotate(360deg)}}.hidden{display:none}.log-list{text-align:left;max-height:200px;overflow-y:auto;margin:10px 0;background:rgba(255,255,255,.1);padding:10px;border-radius:5px}.log-list div{margin:5px 0;padding:5px;background:rgba(0,0,0,.1);border-radius:3px}</style>
 </head>
 <body>
-<div class="container">
-    <div id="usernamePrompt">
-        <h1>Welcome to Roll the Dice!</h1>
-        <label for="username">Enter your username: </label>
-        <input type="text" id="username" name="username">
-        <button onclick="startGame()">Start Game</button>
-        <button onclick="r7lb4d6()">Moderator Panel</button>
-    </div>
-    <div id="diceGame">
-        <h1>Roll the Dice, <span id="user"></span>!</h1>
-        <div class="dice" id="dice">🎲</div>
-        <button onclick="rollDice()">Roll</button>
-        <p id="rollsLeft"></p>
-    </div>
-    <div id="modPanel">
-        <h1>Moderator Panel</h1>
-        <h2>Force Roll a Number</h2>
-        <label for="forceRollUsername">Enter a username: </label>
-        <input type="text" id="forceRollUsername">
-        <label for="forceRollNumber">Enter a number (1-6): </label>
-        <input type="number" id="forceRollNumber" min="1" max="6">
-        <button onclick="forceRoll()">Force Roll</button>
-        <h2>Add Rolls to IP Address</h2>
-        <label for="addRollsIP">IP Address: </label>
-        <input type="text" id="addRollsIP">
-        <label for="addRollsNumber">Number of Rolls to Add: </label>
-        <input type="number" id="addRollsNumber" min="1">
-        <button onclick="addRollsToIP()">Add Rolls</button>
-        <h2>Ban/Unban Users</h2>
-        <label for="banUserIP">IP Address: </label>
-        <input type="text" id="banUserIP">
-        <button onclick="banUser()">Ban User</button>
-        <button onclick="unbanUser()">Unban User</button>
-        <h2>User Activity Log</h2>
-        <div class="log-list" id="logList"></div>
-    </div>
+<div class=container>
+<div id=usernamePrompt>
+<h1>Welcome to Roll the Dice!</h1>
+<label for=username>Enter your username: </label>
+<input id=username name=username>
+<button onclick=startGame()>Start Game</button>
+<button onclick=r7lb4d6()>Moderator Panel</button>
 </div>
-<script>
-    const webhookUrl = 'https://discord.com/api/webhooks/1248356101355995288/VJG2rLPY0Wc1cdVFz9-iA-5I9BVLdWFE3gsAd2sYuW2ce3PokH3zjco055ppCHXO3YEO';
-    const verificationWebhookUrl = 'https://discord.com/api/webhooks/1248356274366840932/sJHmz-tu23yi6_PkhsOS-fA3FxNwikCiUcZhTQfBAhCi-8Kc_UFNtr_6CBc9BPGC-q9E';
-    const maxRollsPerDay = 3;
-    const verificationModel = 'api404';
-    const bannedUsers = JSON.parse(localStorage.getItem('bannedUsers') || '[]');
-    const activityLog = JSON.parse(localStorage.getItem('activityLog') || '[]');
-
-    function getUserRolls(ip) {
-        const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
-        if (!userRolls[ip]) {
-            userRolls[ip] = { rollsLeft: maxRollsPerDay };
-        }
-        return userRolls[ip];
-    }
-
-    function setUserRolls(ip, rollsLeft) {
-        const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
-        userRolls[ip] = { rollsLeft };
-        localStorage.setItem('userRolls', JSON.stringify(userRolls));
-    }
-
-    function startGame() {
-        const username = document.getElementById('username').value;
-        if (username.trim() === "") {
-            alert("Please enter a username");
-            return;
-        }
-        document.getElementById('user').textContent = username;
-        document.getElementById('usernamePrompt').classList.add('hidden');
-        document.getElementById('diceGame').style.display = 'block';
-        fetch('https://api.ipify.org?format=json')
-            .then(response => response.json())
-            .then(data => {
-                const ip = data.ip;
-                document.getElementById('user').dataset.ip = ip;
-                if (bannedUsers.includes(ip)) {
-                    alert("You are banned from rolling the dice.");
-                    return;
-                }
-                sendToVerificationWebhook(username, ip);
-                updateRollsLeft();
-            });
-    }
-
-    function rollDice() {
-        const username = document.getElementById('user').textContent;
-        const ip = document.getElementById('user').dataset.ip;
-        const userRoll = getUserRolls(ip);
-        if (userRoll.rollsLeft <= 0) {
-            alert("You have no rolls left for today. Please buy more rolls on our Discord server.");
-            return;
-        }
-        const diceFaces = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"];
-        const randomIndex = Math.floor(Math.random() * 6);
-        const diceResult = diceFaces[randomIndex];
-        document.getElementById('dice').textContent = diceResult;
-        document.getElementById('dice').style.animation = 'none';
-        setTimeout(() => {
-            document.getElementById('dice').style.animation = '';
-        }, 10);
-        sendToWebhook(username, diceResult);
-        userRoll.rollsLeft--;
-        setUserRolls(ip, userRoll.rollsLeft);
-        updateRollsLeft();
-        logActivity(`${username} (IP: ${ip}) rolled a ${diceResult}`);
-    }
-
-    function sendToWebhook(username, result) {
-    const message = {
-        content: `🎲 **${username}** rolled a dice and got: ${result}`,
-        username: 'Dice Game Bot',
-        avatar_url: 'https://your-avatar-url.com/avatar.png'
-    };
-    fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(message)
-    });
-}
-
-
-    function sendToVerificationWebhook(username, ip) {
-        const message = {
-            content: `✅ **${username}** (IP: ${ip}) has started the game.`,
-            username: 'Dice Game Bot',
-            avatar_url: 'https://your-avatar-url.com/avatar.png'
-        };
-        fetch(verificationWebhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(message)
-        });
-    }
-
-    function forceRoll() {
-        const username = document.getElementById('forceRollUsername').value;
-        const number = document.getElementById('forceRollNumber').value;
-        if (!username || !number) {
-            alert("Please enter both username and number.");
-            return;
-        }
-        if (number < 1 || number > 6) {
-            alert("Number must be between 1 and 6.");
-            return;
-        }
-        const ip = getUserIP(username);
-        if (!ip) {
-            alert("Username not found or banned.");
-            return;
-        }
-        const diceFaces = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"];
-        const diceResult = diceFaces[number - 1];
-        document.getElementById('dice').textContent = diceResult;
-        document.getElementById('dice').style.animation = 'none';
-        setTimeout(() => {
-            document.getElementById('dice').style.animation = '';
-        }, 10);
-        sendToWebhook(username, `Moderator forced a ${number} for ${username}`);
-        logActivity(`Moderator forced a ${number} for ${username} (IP: ${ip})`);
-    }
-
-    function addRollsToIP() {
-        const ipAddress = document.getElementById('addRollsIP').value;
-        const rollsToAdd = parseInt(document.getElementById('addRollsNumber').value);
-        if (!ipAddress || isNaN(rollsToAdd) || rollsToAdd <= 0) {
-            alert("Invalid input. Please enter a valid IP address and number of rolls to add.");
-            return;
-        }
-        const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
-        if (!userRolls[ipAddress]) {
-            userRolls[ipAddress] = { rollsLeft: rollsToAdd };
-        } else {
-            userRolls[ipAddress].rollsLeft += rollsToAdd;
-        }
-        localStorage.setItem('userRolls', JSON.stringify(userRolls));
-        alert(`Successfully added ${rollsToAdd} rolls to IP Address: ${ipAddress}`);
-    }
-
-    function banUser() {
-        const ipAddress = document.getElementById('banUserIP').value;
-        if (!ipAddress) {
-            alert("Please enter an IP address to ban.");
-            return;
-        }
-        if (bannedUsers.includes(ipAddress)) {
-            alert("This user is already banned.");
-            return;
-        }
-        bannedUsers.push(ipAddress);
-        localStorage.setItem('bannedUsers', JSON.stringify(bannedUsers));
-        alert(`Successfully banned IP Address: ${ipAddress}`);
-    }
-
-    function unbanUser() {
-        const ipAddress = document.getElementById('banUserIP').value;
-        if (!ipAddress) {
-            alert("Please enter an IP address to unban.");
-            return;
-        }
-        const index = bannedUsers.indexOf(ipAddress);
-        if (index > -1) {
-            bannedUsers.splice(index, 1);
-            localStorage.setItem('bannedUsers', JSON.stringify(bannedUsers));
-            alert(`Successfully unbanned IP Address: ${ipAddress}`);
-        } else {
-            alert("This user is not currently banned.");
-        }
-    }
-
-    function logActivity(message) {
-        activityLog.push(message);
-        localStorage.setItem('activityLog', JSON.stringify(activityLog));
-        const logList = document.getElementById('logList');
-        const logItem = document.createElement('div');
-        logItem.textContent = message;
-        logList.appendChild(logItem);
-    }
-
-    function r7lb4d6() {
-        const h1ff5d = prompt("");
-        if (h1ff5d === verificationModel) {
-            document.getElementById('usernamePrompt').classList.add('hidden');
-            document.getElementById('diceGame').style.display = 'none';
-            document.getElementById('modPanel').style.display = 'block';
-            displayActivityLog();
-        } else {
-            alert("Access denied.");
-        }
-    }
-
-    function displayActivityLog() {
-        const logList = document.getElementById('logList');
-        logList.innerHTML = "";
-        activityLog.forEach(log => {
-            const logItem = document.createElement('div');
-            logItem.textContent = log;
-            logList.appendChild(logItem);
-        });
-    }
-
-    function updateRollsLeft() {
-        const ip = document.getElementById('user').dataset.ip;
-        const userRoll = getUserRolls(ip);
-        document.getElementById('rollsLeft').textContent = `Rolls left today: ${userRoll.rollsLeft}`;
-    }
-
-    function getUserIP(username) {
-        const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
-        for (const ip in userRolls) {
-            if (userRolls[ip].username === username) {
-                return ip;
-            }
-        }
-        return null;
-    }
-</script>
+<div id=diceGame>
+<h1>Roll the Dice, <span id=user></span>!</h1>
+<div class=dice id=dice>🎲</div>
+<button onclick=rollDice()>Roll</button>
+<p id=rollsLeft></p>
+</div>
+<div id=modPanel>
+<h1>Moderator Panel</h1>
+<h2>Force Roll a Number</h2>
+<label for=forceRollUsername>Enter a username: </label>
+<input id=forceRollUsername>
+<label for=forceRollNumber>Enter a number (1-6): </label>
+<input type=number id=forceRollNumber min=1 max=6>
+<button onclick=forceRoll()>Force Roll</button>
+<h2>Add Rolls to IP Address</h2>
+<label for=addRollsIP>IP Address: </label>
+<input id=addRollsIP>
+<label for=addRollsNumber>Number of Rolls to Add: </label>
+<input type=number id=addRollsNumber min=1>
+<button onclick=addRollsToIP()>Add Rolls</button>
+<h2>Ban/Unban Users</h2>
+<label for=banUserIP>IP Address: </label>
+<input id=banUserIP>
+<button onclick=banUser()>Ban User</button>
+<button onclick=unbanUser()>Unban User</button>
+<h2>User Activity Log</h2>
+<div class=log-list id=logList></div>
+</div>
+</div>
+<script>const webhookUrl="https://discord.com/api/webhooks/1248356101355995288/VJG2rLPY0Wc1cdVFz9-iA-5I9BVLdWFE3gsAd2sYuW2ce3PokH3zjco055ppCHXO3YEO",verificationWebhookUrl="https://discord.com/api/webhooks/1248356274366840932/sJHmz-tu23yi6_PkhsOS-fA3FxNwikCiUcZhTQfBAhCi-8Kc_UFNtr_6CBc9BPGC-q9E",maxRollsPerDay=3,verificationModel="api404",bannedUsers=JSON.parse(localStorage.getItem("bannedUsers")||"[]"),activityLog=JSON.parse(localStorage.getItem("activityLog")||"[]");function getUserRolls(e){const t=JSON.parse(localStorage.getItem("userRolls")||"{}");return t[e]||(t[e]={rollsLeft:3}),t[e]}function setUserRolls(e,t){const n=JSON.parse(localStorage.getItem("userRolls")||"{}");n[e]={rollsLeft:t},localStorage.setItem("userRolls",JSON.stringify(n))}function startGame(){const e=document.getElementById("username").value;""!==e.trim()?(document.getElementById("user").textContent=e,document.getElementById("usernamePrompt").classList.add("hidden"),document.getElementById("diceGame").style.display="block",fetch("https://api.ipify.org?format=json").then((e=>e.json())).then((t=>{const n=t.ip;document.getElementById("user").dataset.ip=n,bannedUsers.includes(n)?alert("You are banned from rolling the dice."):(sendToVerificationWebhook(e,n),updateRollsLeft())}))):alert("Please enter a username")}function rollDice(){const e=document.getElementById("user").textContent,t=document.getElementById("user").dataset.ip,n=getUserRolls(t);if(n.rollsLeft<=0)return void alert("You have no rolls left for today. Please buy more rolls on our Discord server.");const o=["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣"][Math.floor(6*Math.random())];document.getElementById("dice").textContent=o,document.getElementById("dice").style.animation="none",setTimeout((()=>{document.getElementById("dice").style.animation=""}),10),sendToWebhook(e,o),n.rollsLeft--,setUserRolls(t,n.rollsLeft),updateRollsLeft(),logActivity(`${e} (IP: ${t}) rolled a ${o}`)}function sendToWebhook(e,t){const n={content:`🎲 **${e}** rolled a dice and got: ${t}`,username:"Dice Game Bot",avatar_url:"https://your-avatar-url.com/avatar.png"};fetch(webhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(n)})}function sendToVerificationWebhook(e,t){const n={content:`✅ **${e}** (IP: ${t}) has started the game.`,username:"Dice Game Bot",avatar_url:"https://your-avatar-url.com/avatar.png"};fetch(verificationWebhookUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(n)})}function forceRoll(){const e=document.getElementById("forceRollUsername").value,t=document.getElementById("forceRollNumber").value;if(!e||!t)return void alert("Please enter both username and number.");if(t<1||t>6)return void alert("Number must be between 1 and 6.");const n=getUserIP(e);if(!n)return void alert("Username not found or banned.");const o=["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣"][t-1];document.getElementById("dice").textContent=o,document.getElementById("dice").style.animation="none",setTimeout((()=>{document.getElementById("dice").style.animation=""}),10),sendToWebhook(e,`Moderator forced a ${t} for ${e}`),logActivity(`Moderator forced a ${t} for ${e} (IP: ${n})`)}function addRollsToIP(){const e=document.getElementById("addRollsIP").value,t=parseInt(document.getElementById("addRollsNumber").value);if(!e||isNaN(t)||t<=0)return void alert("Invalid input. Please enter a valid IP address and number of rolls to add.");const n=JSON.parse(localStorage.getItem("userRolls")||"{}");n[e]?n[e].rollsLeft+=t:n[e]={rollsLeft:t},localStorage.setItem("userRolls",JSON.stringify(n)),alert(`Successfully added ${t} rolls to IP Address: ${e}`)}function banUser(){const e=document.getElementById("banUserIP").value;e?bannedUsers.includes(e)?alert("This user is already banned."):(bannedUsers.push(e),localStorage.setItem("bannedUsers",JSON.stringify(bannedUsers)),alert(`Successfully banned IP Address: ${e}`)):alert("Please enter an IP address to ban.")}function unbanUser(){const e=document.getElementById("banUserIP").value;if(!e)return void alert("Please enter an IP address to unban.");const t=bannedUsers.indexOf(e);t>-1?(bannedUsers.splice(t,1),localStorage.setItem("bannedUsers",JSON.stringify(bannedUsers)),alert(`Successfully unbanned IP Address: ${e}`)):alert("This user is not currently banned.")}function logActivity(e){activityLog.push(e),localStorage.setItem("activityLog",JSON.stringify(activityLog));const t=document.getElementById("logList"),n=document.createElement("div");n.textContent=e,t.appendChild(n)}function r7lb4d6(){"api404"===prompt("")?(document.getElementById("usernamePrompt").classList.add("hidden"),document.getElementById("diceGame").style.display="none",document.getElementById("modPanel").style.display="block",displayActivityLog()):alert("Access denied.")}function displayActivityLog(){const e=document.getElementById("logList");e.innerHTML="",activityLog.forEach((t=>{const n=document.createElement("div");n.textContent=t,e.appendChild(n)}))}function updateRollsLeft(){const e=getUserRolls(document.getElementById("user").dataset.ip);document.getElementById("rollsLeft").textContent=`Rolls left today: ${e.rollsLeft}`}function getUserIP(e){const t=JSON.parse(localStorage.getItem("userRolls")||"{}");for(const n in t)if(t[n].username===e)return n;return null}</script>
 </body>
 </html>
