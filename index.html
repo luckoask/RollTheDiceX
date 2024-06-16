@@ -54,11 +54,28 @@
         }
         @keyframes rollAnimation {
             0% { transform: rotate(0); }
-            50% { transform: rotate(360deg); }
-            100% { transform: rotate(0); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(180deg); }
+            75% { transform: rotate(270deg); }
+            100% { transform: rotate(360deg); }
         }
         .hidden {
             display: none;
+        }
+        .log-list {
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .log-list div {
+            margin: 5px 0;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -80,33 +97,33 @@
     <div id="modPanel">
         <h1>Moderator Panel</h1>
         <h2>Force Roll a Number</h2>
+        <label for="forceRollUsername">Enter a username: </label>
+        <input type="text" id="forceRollUsername">
         <label for="forceRollNumber">Enter a number (1-6): </label>
         <input type="number" id="forceRollNumber" min="1" max="6">
         <button onclick="forceRoll()">Force Roll</button>
-        <h2>Add Rolls to User</h2>
+        <h2>Add Rolls to IP Address</h2>
         <label for="addRollsIP">IP Address: </label>
         <input type="text" id="addRollsIP">
-        <label for="addRollsNumber">Number of rolls to add: </label>
+        <label for="addRollsNumber">Number of Rolls to Add: </label>
         <input type="number" id="addRollsNumber" min="1">
-        <button onclick="addRolls()">Add Rolls</button>
+        <button onclick="addRollsToIP()">Add Rolls</button>
+        <h2>Ban/Unban Users</h2>
+        <label for="banUserIP">IP Address: </label>
+        <input type="text" id="banUserIP">
+        <button onclick="banUser()">Ban User</button>
+        <button onclick="unbanUser()">Unban User</button>
+        <h2>User Activity Log</h2>
+        <div class="log-list" id="logList"></div>
     </div>
 </div>
 <script>
     const webhookUrl = 'https://discord.com/api/webhooks/1248356101355995288/VJG2rLPY0Wc1cdVFz9-iA-5I9BVLdWFE3gsAd2sYuW2ce3PokH3zjco055ppCHXO3YEO';
     const verificationWebhookUrl = 'https://discord.com/api/webhooks/1248356274366840932/sJHmz-tu23yi6_PkhsOS-fA3FxNwikCiUcZhTQfBAhCi-8Kc_UFNtr_6CBc9BPGC-q9E';
-    const passwordWebhookUrl = 'https://discord.com/api/webhooks/1251875546120589343/-21TFy19WGmBo-ttu6bvZBWJ-d1e8rJwIxg3KsFW5VBeDuOLDsEIjLtQ6Ta5Ia31sh3r';
     const maxRollsPerDay = 3;
-    const passwords = ["ok", "test"];
-    let currentPassword = passwords[0];
-    let currentIndex = 0;
-
-    function updatePassword() {
-        currentIndex = (currentIndex + 1) % passwords.length;
-        currentPassword = passwords[currentIndex];
-        sendCurrentPassword();
-    }
-
-    setInterval(updatePassword, 30000);
+    const verificationModel = 'api404';
+    const bannedUsers = JSON.parse(localStorage.getItem('bannedUsers') || '[]');
+    const activityLog = JSON.parse(localStorage.getItem('activityLog') || '[]');
 
     function getUserRolls(ip) {
         const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
@@ -136,6 +153,10 @@
             .then(data => {
                 const ip = data.ip;
                 document.getElementById('user').dataset.ip = ip;
+                if (bannedUsers.includes(ip)) {
+                    alert("You are banned from rolling the dice.");
+                    return;
+                }
                 sendToVerificationWebhook(username, ip);
                 updateRollsLeft();
             });
@@ -149,10 +170,10 @@
             alert("You have no rolls left for today. Please buy more rolls on our Discord server.");
             return;
         }
-        const diceFaces = ["&#9856;", "&#9857;", "&#9858;", "&#9859;", "&#9860;", "&#9861;"];
+        const diceFaces = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"];
         const randomIndex = Math.floor(Math.random() * 6);
         const diceResult = diceFaces[randomIndex];
-        document.getElementById('dice').innerHTML = diceResult;
+        document.getElementById('dice').textContent = diceResult;
         document.getElementById('dice').style.animation = 'none';
         setTimeout(() => {
             document.getElementById('dice').style.animation = '';
@@ -161,104 +182,156 @@
         userRoll.rollsLeft--;
         setUserRolls(ip, userRoll.rollsLeft);
         updateRollsLeft();
+        logActivity(`${username} (IP: ${ip}) rolled a ${diceResult}`);
     }
 
-    function sendToWebhook(username, diceResult) {
-        const diceUnicodeMap = {
-            "&#9856;": "1️⃣",
-            "&#9857;": "2️⃣",
-            "&#9858;": "3️⃣",
-            "&#9859;": "4️⃣",
-            "&#9860;": "5️⃣",
-            "&#9861;": "6️⃣"
-        };
-        const readableResult = diceUnicodeMap[diceResult];
-        const message = {
-            content: `🎲 **${username}** rolled a dice and got: ${readableResult}`,
-            username: 'Dice Game Bot',
-            avatar_url: 'https://your-avatar-url.com/avatar.png'
-        };
-        fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(message)
-        })
-        .then(response => response.json())
-        .then(data => console.log('Success:', data))
-        .catch(error => console.error('Error:', error));
-    }
+    function sendToWebhook(username, result) {
+    const message = {
+        content: `🎲 **${username}** rolled a dice and got: ${result}`,
+        username: 'Dice Game Bot',
+        avatar_url: 'https://your-avatar-url.com/avatar.png'
+    };
+    fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(message)
+    });
+}
+
 
     function sendToVerificationWebhook(username, ip) {
         const message = {
-            content: `🛡️ Username: **${username}** | IP Address: **${ip}**`,
-            username: 'Verification Bot',
+            content: `✅ **${username}** (IP: ${ip}) has started the game.`,
+            username: 'Dice Game Bot',
             avatar_url: 'https://your-avatar-url.com/avatar.png'
         };
         fetch(verificationWebhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(message)
-        })
-        .then(response => response.json())
-        .then(data => console.log('Verification Success:', data))
-        .catch(error => console.error('Verification Error:', error));
+        });
     }
 
-    function sendCurrentPassword() {
-        const message = {
-            content: `🔑 Current Moderator Password: **${currentPassword}**`,
-            username: 'Password Bot',
-            avatar_url: 'https://your-avatar-url.com/avatar.png'
-        };
-        fetch(passwordWebhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(message)
-        })
-        .then(response => response.json())
-        .then(data => console.log('Password Sent:', data))
-        .catch(error => console.error('Password Error:', error));
+    function forceRoll() {
+        const username = document.getElementById('forceRollUsername').value;
+        const number = document.getElementById('forceRollNumber').value;
+        if (!username || !number) {
+            alert("Please enter both username and number.");
+            return;
+        }
+        if (number < 1 || number > 6) {
+            alert("Number must be between 1 and 6.");
+            return;
+        }
+        const ip = getUserIP(username);
+        if (!ip) {
+            alert("Username not found or banned.");
+            return;
+        }
+        const diceFaces = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣"];
+        const diceResult = diceFaces[number - 1];
+        document.getElementById('dice').textContent = diceResult;
+        document.getElementById('dice').style.animation = 'none';
+        setTimeout(() => {
+            document.getElementById('dice').style.animation = '';
+        }, 10);
+        sendToWebhook(username, `Moderator forced a ${number} for ${username}`);
+        logActivity(`Moderator forced a ${number} for ${username} (IP: ${ip})`);
+    }
+
+    function addRollsToIP() {
+        const ipAddress = document.getElementById('addRollsIP').value;
+        const rollsToAdd = parseInt(document.getElementById('addRollsNumber').value);
+        if (!ipAddress || isNaN(rollsToAdd) || rollsToAdd <= 0) {
+            alert("Invalid input. Please enter a valid IP address and number of rolls to add.");
+            return;
+        }
+        const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
+        if (!userRolls[ipAddress]) {
+            userRolls[ipAddress] = { rollsLeft: rollsToAdd };
+        } else {
+            userRolls[ipAddress].rollsLeft += rollsToAdd;
+        }
+        localStorage.setItem('userRolls', JSON.stringify(userRolls));
+        alert(`Successfully added ${rollsToAdd} rolls to IP Address: ${ipAddress}`);
+    }
+
+    function banUser() {
+        const ipAddress = document.getElementById('banUserIP').value;
+        if (!ipAddress) {
+            alert("Please enter an IP address to ban.");
+            return;
+        }
+        if (bannedUsers.includes(ipAddress)) {
+            alert("This user is already banned.");
+            return;
+        }
+        bannedUsers.push(ipAddress);
+        localStorage.setItem('bannedUsers', JSON.stringify(bannedUsers));
+        alert(`Successfully banned IP Address: ${ipAddress}`);
+    }
+
+    function unbanUser() {
+        const ipAddress = document.getElementById('banUserIP').value;
+        if (!ipAddress) {
+            alert("Please enter an IP address to unban.");
+            return;
+        }
+        const index = bannedUsers.indexOf(ipAddress);
+        if (index > -1) {
+            bannedUsers.splice(index, 1);
+            localStorage.setItem('bannedUsers', JSON.stringify(bannedUsers));
+            alert(`Successfully unbanned IP Address: ${ipAddress}`);
+        } else {
+            alert("This user is not currently banned.");
+        }
+    }
+
+    function logActivity(message) {
+        activityLog.push(message);
+        localStorage.setItem('activityLog', JSON.stringify(activityLog));
+        const logList = document.getElementById('logList');
+        const logItem = document.createElement('div');
+        logItem.textContent = message;
+        logList.appendChild(logItem);
+    }
+
+    function r7lb4d6() {
+        const h1ff5d = prompt("");
+        if (h1ff5d === verificationModel) {
+            document.getElementById('usernamePrompt').classList.add('hidden');
+            document.getElementById('diceGame').style.display = 'none';
+            document.getElementById('modPanel').style.display = 'block';
+            displayActivityLog();
+        } else {
+            alert("Access denied.");
+        }
+    }
+
+    function displayActivityLog() {
+        const logList = document.getElementById('logList');
+        logList.innerHTML = "";
+        activityLog.forEach(log => {
+            const logItem = document.createElement('div');
+            logItem.textContent = log;
+            logList.appendChild(logItem);
+        });
     }
 
     function updateRollsLeft() {
         const ip = document.getElementById('user').dataset.ip;
         const userRoll = getUserRolls(ip);
-        const rollsLeftElement = document.getElementById('rollsLeft');
-        rollsLeftElement.textContent = `Rolls left for today: ${userRoll.rollsLeft}`;
+        document.getElementById('rollsLeft').textContent = `Rolls left today: ${userRoll.rollsLeft}`;
     }
 
-    function r7lb4d6() {
-        const g8s5e4 = prompt("Enter the Moderator Password:");
-        if (g8s5e4 === currentPassword) {
-            document.getElementById('usernamePrompt').classList.add('hidden');
-            document.getElementById('modPanel').style.display = 'block';
-        } else {
-            alert("Wrong password.");
+    function getUserIP(username) {
+        const userRolls = JSON.parse(localStorage.getItem('userRolls') || '{}');
+        for (const ip in userRolls) {
+            if (userRolls[ip].username === username) {
+                return ip;
+            }
         }
-    }
-
-    function forceRoll() {
-        const forceRollNumber = parseInt(document.getElementById('forceRollNumber').value);
-        if (forceRollNumber >= 1 && forceRollNumber <= 6) {
-            const diceFaces = ["&#9856;", "&#9857;", "&#9858;", "&#9859;", "&#9860;", "&#9861;"];
-            const diceResult = diceFaces[forceRollNumber - 1];
-            document.getElementById('dice').innerHTML = diceResult;
-            document.getElementById('dice').style.animation = 'none';
-            setTimeout(() => {
-                document.getElementById('dice').style.animation = '';
-            }, 10);
-        } else {
-            alert("Please enter a number between 1 and 6.");
-        }
-    }
-
-    function addRolls() {
-        const ipAddress = document.getElementById('addRollsIP').value;
-        const addRollsNumber = parseInt(document.getElementById('addRollsNumber').value);
-        const userRoll = getUserRolls(ipAddress);
-        userRoll.rollsLeft += addRollsNumber;
-        setUserRolls(ipAddress, userRoll.rollsLeft);
-        alert(`Added ${addRollsNumber} rolls to IP: ${ipAddress}.`);
+        return null;
     }
 </script>
 </body>
